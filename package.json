@@ -4,11 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
   },
   "author": "Hhanuska",
   "license": "MIT",
   "dependencies": {
+    "@types/node": "^20.11.30",
+    "axios": "^1.6.8",
+    "cheerio": "^1.0.0-rc.12",
     "typescript": "^5.4.3"
   }
 }
