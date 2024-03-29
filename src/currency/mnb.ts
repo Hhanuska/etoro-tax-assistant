@@ -1,5 +1,20 @@
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import * as cheerio from "cheerio";
+
+const monthMap: { [date: string]: string } = {
+  január: "January",
+  február: "February",
+  március: "March",
+  április: "April",
+  május: "May",
+  június: "June",
+  július: "July",
+  augusztus: "August",
+  szeptember: "September",
+  október: "October",
+  november: "November",
+  december: "December",
+};
 
 export class MNB {
   static async getExchangeRates(year: number) {
@@ -18,18 +33,24 @@ export class MNB {
       },
     });
 
-    const rates: { [date: string]: number } = {};
+    const rates: { date: Date; rate: number }[] = [];
 
     const $ = cheerio.load(resp.data);
     $("tbody > tr").each((i, el) => {
       const date = $(el).find("td:nth-child(1)").text();
       const rate = $(el).find("td:nth-child(2)").text();
 
-      console.log(date, rate);
-
-      rates[date.substring(0, date.indexOf(","))] = parseFloat(
-        rate.replace(/,/g, ".")
+      const dateTranslated = date.replace(
+        /január|február|március|április|május|június|július|augusztus|szeptember|október|november|december/g,
+        (matched) => monthMap[matched]
       );
+
+      rates.push({
+        date: new Date(
+          dateTranslated.substring(0, dateTranslated.indexOf(","))
+        ),
+        rate: parseFloat(rate.replace(/,/g, ".")),
+      });
     });
 
     return rates;
