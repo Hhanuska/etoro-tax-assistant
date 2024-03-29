@@ -1,13 +1,14 @@
+import { WorkBook } from "xlsx";
+import { StatementReader } from "./app/statementReader";
 import { MNB } from "./currency/mnb";
-import fs from "fs";
-import XLSX from "xlsx";
+import { Statement } from "./app/statement";
 
-// MNB.getExchangeRates(2022).then((response) => console.log(response));
+const statements = StatementReader.getInputFilePaths().map((path) =>
+  StatementReader.readInputFile(path)
+);
 
-const INPUT_PATH = "./files/input/";
+statements.forEach(handleStatement);
 
-fs.readdirSync(INPUT_PATH).forEach((file) => {
-  if (!file.endsWith(".xlsx")) return;
-  const workbook = XLSX.readFile(`${INPUT_PATH}${file}`);
-  console.log(workbook.SheetNames);
-});
+async function handleStatement(s: WorkBook) {
+  const statement = new Statement(s);
+}
