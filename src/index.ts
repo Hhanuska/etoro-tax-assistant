@@ -1,6 +1,6 @@
 import { MNB } from "./currency/mnb";
-import * as fs from "fs";
-import * as XLSX from "xlsx";
+import fs from "fs";
+import XLSX from "xlsx";
 
 // MNB.getExchangeRates(2022).then((response) => console.log(response));
 
