@@ -1,7 +1,16 @@
 import XLSX, { WorkBook } from "xlsx";
 
 export class Statement {
-  constructor(private statement: WorkBook) {}
+  private dimensions: { [sheetName: string]: Dimensions } = {};
+
+  private colMap: { [sheetName: string]: { [col: string]: string } } = {};
+
+  constructor(private statement: WorkBook) {
+    this.dimensions["Closed Positions"] = this.getDimensions(
+      statement.Sheets["Closed Positions"]
+    );
+    this.colMap["Closed Positions"] = this.getColMap("Closed Positions");
+  }
 
   public getDimensions(sheet: XLSX.WorkSheet) {
     const dim = sheet["!ref"];
@@ -56,4 +65,10 @@ export class Statement {
     return colMap;
   }
 }
+
+interface Dimensions {
+  startCol: string;
+  startRow: number;
+  endCol: string;
+  endRow: number;
 }
