@@ -32,4 +32,28 @@ export class Statement {
       endRow: parseInt(endRow),
     };
   }
+
+  public getColMap(sheetName: string) {
+    const sheet = this.statement.Sheets[sheetName];
+    const dimensions = this.dimensions[sheetName];
+    const colMap: { [col: string]: string } = {};
+
+    for (
+      let i = dimensions.startCol.charCodeAt(0);
+      i <= dimensions.endCol.charCodeAt(0);
+      i++
+    ) {
+      const col = String.fromCharCode(i);
+      const cell = sheet[`${col}${dimensions.startRow}`];
+      if (!cell || !cell.v) {
+        continue;
+      }
+      colMap[cell.v] = col;
+    }
+
+    console.log(colMap);
+
+    return colMap;
+  }
+}
 }
