@@ -1,11 +1,11 @@
 import XLSX, { WorkBook } from "xlsx";
 
 export class Sheet {
-  private dimensions: Dimensions;
+  public dimensions: Dimensions;
 
-  private colMap: { [col: string]: string } = {};
+  public colMap: { [col: string]: string } = {};
 
-  constructor(private sheet: XLSX.WorkSheet) {
+  constructor(public sheet: XLSX.WorkSheet) {
     this.dimensions = this.getDimensions();
     this.colMap = this.getColMap();
   }
