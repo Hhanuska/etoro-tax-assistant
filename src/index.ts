@@ -15,23 +15,39 @@ async function handleStatement(s: WorkBook) {
   const dates = getDates(statement);
 
   const oldestDate = new Date(dates[0]);
-
-  console.log(oldestDate);
+  const newestDate = new Date(dates[dates.length - 1]);
 }
 
 function getDates(statement: Statement) {
   const dates: number[] = [];
 
-  const sheet = statement.sheets["Closed Positions"];
+  const closedPositionsSheet = statement.sheets["Closed Positions"];
 
-  const col = sheet.colMap["Open Date"];
+  const col = closedPositionsSheet.colMap["Open Date"];
 
   for (
-    let i = sheet.dimensions.startRow + 1;
-    i <= sheet.dimensions.endRow;
+    let i = closedPositionsSheet.dimensions.startRow + 1;
+    i <= closedPositionsSheet.dimensions.endRow;
     i++
   ) {
-    const cell: XLSX.CellObject = sheet.sheet[`${col}${i}`];
+    const cell: XLSX.CellObject = closedPositionsSheet.sheet[`${col}${i}`];
+    if (!cell || !cell.v) {
+      continue;
+    }
+    const [date, time] = cell.v.toString().split(" ");
+    dates.push(new Date(reformatDate(date)).valueOf());
+  }
+
+  const activitySheet = statement.sheets["Account Activity"];
+
+  const dateCol = activitySheet.colMap["Date"];
+
+  for (
+    let i = activitySheet.dimensions.startRow + 1;
+    i <= activitySheet.dimensions.endRow;
+    i++
+  ) {
+    const cell: XLSX.CellObject = activitySheet.sheet[`${dateCol}${i}`];
     if (!cell || !cell.v) {
       continue;
     }
