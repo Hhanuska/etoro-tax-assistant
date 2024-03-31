@@ -1,5 +1,6 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
+import moment from "moment";
 
 const monthMap: { [date: string]: string } = {
   január: "January",
@@ -17,9 +18,9 @@ const monthMap: { [date: string]: string } = {
 };
 
 export class MNB {
-  static async getExchangeRates(year: number) {
-    const from = `${year}.01.01.`;
-    const to = `${year}.12.31.`;
+  static async getExchangeRates(_from: Date, _to: Date) {
+    const from = moment(_from).format("YYYY.MM.DD.");
+    const to = moment(_to).format("YYYY.MM.DD.");
 
     var resp = await axios({
       method: "GET",

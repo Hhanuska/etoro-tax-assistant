@@ -16,6 +16,8 @@ async function handleStatement(s: WorkBook) {
 
   const oldestDate = new Date(dates[0]);
   const newestDate = new Date(dates[dates.length - 1]);
+
+  const rates = await MNB.getExchangeRates(oldestDate, newestDate);
 }
 
 function getDates(statement: Statement) {
