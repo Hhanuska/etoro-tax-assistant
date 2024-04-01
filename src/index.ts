@@ -245,7 +245,9 @@ function addExchangeRatesToClosedPositions(
       v: closeRate,
     };
 
-    const profitCol = closedPositionsSheet.colMap["Profit"];
+    const profitCol =
+      closedPositionsSheet.colMap["Profit"] ??
+      closedPositionsSheet.colMap["Profit(USD)"];
 
     const convertedCloseAmountCell: XLSX.CellObject = {
       t: "n",
