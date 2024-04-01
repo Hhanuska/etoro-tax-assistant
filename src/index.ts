@@ -88,13 +88,22 @@ function addExchangeRatesToStatement(statement: Statement, rates: MNBRate[]) {
     activitySheet.dimensions.endCol.charCodeAt(0) + 1
   );
 
+  const convertedCol = String.fromCharCode(
+    activitySheet.dimensions.endCol.charCodeAt(0) + 2
+  );
+
   activitySheet.sheet[
     "!ref"
-  ] = `${activitySheet.dimensions.startCol}${activitySheet.dimensions.startRow}:${exchRateCol}${activitySheet.dimensions.endRow}`;
+  ] = `${activitySheet.dimensions.startCol}${activitySheet.dimensions.startRow}:${convertedCol}${activitySheet.dimensions.endRow}`;
 
   activitySheet.sheet[`${exchRateCol}${activitySheet.dimensions.startRow}`] = {
     t: "s",
     v: "Exchange Rate",
+  };
+
+  activitySheet.sheet[`${convertedCol}${activitySheet.dimensions.startRow}`] = {
+    t: "s",
+    v: "Amount (HUF)",
   };
 
   for (
@@ -102,17 +111,26 @@ function addExchangeRatesToStatement(statement: Statement, rates: MNBRate[]) {
     i <= activitySheet.dimensions.endRow;
     i++
   ) {
-    const cell: XLSX.CellObject = activitySheet.sheet[`${dateCol}${i}`];
-    if (!cell || !cell.v) {
+    const dateCell: XLSX.CellObject = activitySheet.sheet[`${dateCol}${i}`];
+    if (!dateCell || !dateCell.v) {
       continue;
     }
-    const date = dateAndTimeToDate(cell.v.toString());
+    const date = dateAndTimeToDate(dateCell.v.toString());
     const rate = MNB.getExchangeRate(date, rates);
 
     activitySheet.sheet[`${exchRateCol}${i}`] = {
       t: "n",
       v: rate,
     };
+
+    const amountCol = activitySheet.colMap["Amount"];
+
+    const convertedAmountCell: XLSX.CellObject = {
+      t: "n",
+      f: `=${amountCol}${i} * ${exchRateCol}${i}`,
+    };
+
+    activitySheet.sheet[`${convertedCol}${i}`] = convertedAmountCell;
   }
 
   return statement;
