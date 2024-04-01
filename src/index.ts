@@ -36,8 +36,8 @@ function getDates(statement: Statement) {
     if (!cell || !cell.v) {
       continue;
     }
-    const [date, time] = cell.v.toString().split(" ");
-    dates.push(new Date(reformatDate(date)).valueOf());
+    const date = dateAndTimeToDate(cell.v.toString());
+    dates.push(date.valueOf());
   }
 
   const activitySheet = statement.sheets["Account Activity"];
@@ -53,11 +53,16 @@ function getDates(statement: Statement) {
     if (!cell || !cell.v) {
       continue;
     }
-    const [date, time] = cell.v.toString().split(" ");
-    dates.push(new Date(reformatDate(date)).valueOf());
+    const date = dateAndTimeToDate(cell.v.toString());
+    dates.push(date.valueOf());
   }
 
   return dates.sort();
+}
+
+function dateAndTimeToDate(dateAndTime: string): Date {
+  const [date, time] = dateAndTime.split(" ");
+  return new Date(reformatDate(date));
 }
 
 function reformatDate(date: string) {
