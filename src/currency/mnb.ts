@@ -19,7 +19,9 @@ const monthMap: { [date: string]: string } = {
 
 export class MNB {
   static async getExchangeRates(_from: Date, _to: Date) {
-    const from = moment(_from).format("YYYY.MM.DD.");
+    // if MNB does not provide rates for the first day (eg. weekend, holiday), we adjust the date range
+    const adjustedFrom = new Date(_from.getTime() - 1000 * 60 * 60 * 24 * 7);
+    const from = moment(adjustedFrom).format("YYYY.MM.DD.");
     const to = moment(_to).format("YYYY.MM.DD.");
 
     var resp = await axios({
