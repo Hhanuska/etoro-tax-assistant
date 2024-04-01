@@ -7,7 +7,7 @@ export class Sheet {
 
   constructor(public sheet: XLSX.WorkSheet) {
     this.dimensions = this.getDimensions();
-    this.refreshColMap();
+    this.colMap = this.getColMap();
   }
 
   public getDimensions() {
@@ -60,6 +60,7 @@ export class Sheet {
   }
 
   public refreshColMap() {
+    this.dimensions = this.getDimensions();
     this.colMap = this.getColMap();
   }
 }
