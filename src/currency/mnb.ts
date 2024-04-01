@@ -36,7 +36,7 @@ export class MNB {
       },
     });
 
-    const rates: { date: Date; rate: number }[] = [];
+    const rates: MNBRate[] = [];
 
     const $ = cheerio.load(resp.data);
     $("tbody > tr").each((i, el) => {
@@ -58,4 +58,19 @@ export class MNB {
 
     return rates;
   }
+
+  static getExchangeRate(date: Date, MNBRates: MNBRate[]) {
+    for (let i = MNBRates.length - 1; i >= 0; i--) {
+      if (date.getTime() >= MNBRates[i].date.getTime()) {
+        return MNBRates[i].rate;
+      }
+    }
+
+    throw new Error(`No exchange rate found for date: ${date}`);
+  }
+}
+
+export interface MNBRate {
+  date: Date;
+  rate: number;
 }
