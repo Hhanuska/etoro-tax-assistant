@@ -3,14 +3,18 @@ import { StatementReader } from "./app/statementReader";
 import { MNB, MNBRate } from "./currency/mnb";
 import { Statement } from "./app/statement";
 
-const statements = StatementReader.getInputFilePaths().map((path) =>
-  StatementReader.readInputFile(path)
-);
+const statements = StatementReader.getInputFilePaths().map((path) => {
+  const fileName = path.split("/")[path.split("/").length - 1];
+  return {
+    name: fileName.substring(0, fileName.indexOf(".xlsx")),
+    wb: StatementReader.readInputFile(path),
+  };
+});
 
 statements.forEach(handleStatement);
 
-async function handleStatement(s: WorkBook) {
-  const statement = new Statement(s);
+async function handleStatement(s: { name: string; wb: WorkBook }) {
+  const statement = new Statement(s.wb);
 
   const dates = getDates(statement);
 
@@ -18,6 +22,13 @@ async function handleStatement(s: WorkBook) {
   const newestDate = new Date(dates[dates.length - 1]);
 
   const rates = await MNB.getExchangeRates(oldestDate, newestDate);
+
+  addExchangeRatesToStatement(statement, rates);
+
+  StatementReader.writeOutputFile(
+    statement.getWorkbook(),
+    `./files/output/${s.name}_output.xlsx`
+  );
 }
 
 function getDates(statement: Statement) {
