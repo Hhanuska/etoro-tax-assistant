@@ -14,4 +14,8 @@ export class StatementReader {
   public static readInputFile(filePath: string) {
     return XLSX.readFile(filePath);
   }
+
+  public static writeOutputFile(workbook: XLSX.WorkBook, filePath: string) {
+    XLSX.writeFile(workbook, filePath);
+  }
 }

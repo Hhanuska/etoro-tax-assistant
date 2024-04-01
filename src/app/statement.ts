@@ -9,4 +9,8 @@ export class Statement {
       this.sheets[sheetName] = new Sheet(this.statement.Sheets[sheetName]);
     });
   }
+
+  public getWorkbook() {
+    return this.statement;
+  }
 }

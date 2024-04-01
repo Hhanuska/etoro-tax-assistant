@@ -1,6 +1,6 @@
 import XLSX, { WorkBook } from "xlsx";
 import { StatementReader } from "./app/statementReader";
-import { MNB } from "./currency/mnb";
+import { MNB, MNBRate } from "./currency/mnb";
 import { Statement } from "./app/statement";
 
 const statements = StatementReader.getInputFilePaths().map((path) =>
@@ -67,4 +67,42 @@ function dateAndTimeToDate(dateAndTime: string): Date {
 
 function reformatDate(date: string) {
   return date.split("/").reverse().join("-");
+}
+
+function addExchangeRatesToStatement(statement: Statement, rates: MNBRate[]) {
+  const activitySheet = statement.sheets["Account Activity"];
+  const dateCol = activitySheet.colMap["Date"];
+
+  const exchRateCol = String.fromCharCode(
+    activitySheet.dimensions.endCol.charCodeAt(0) + 1
+  );
+
+  activitySheet.sheet[
+    "!ref"
+  ] = `${activitySheet.dimensions.startCol}${activitySheet.dimensions.startRow}:${exchRateCol}${activitySheet.dimensions.endRow}`;
+
+  activitySheet.sheet[`${exchRateCol}${activitySheet.dimensions.startRow}`] = {
+    t: "s",
+    v: "Exchange Rate",
+  };
+
+  for (
+    let i = activitySheet.dimensions.startRow + 1;
+    i <= activitySheet.dimensions.endRow;
+    i++
+  ) {
+    const cell: XLSX.CellObject = activitySheet.sheet[`${dateCol}${i}`];
+    if (!cell || !cell.v) {
+      continue;
+    }
+    const date = dateAndTimeToDate(cell.v.toString());
+    const rate = MNB.getExchangeRate(date, rates);
+
+    activitySheet.sheet[`${exchRateCol}${i}`] = {
+      t: "n",
+      v: rate,
+    };
+  }
+
+  return statement;
 }
