@@ -471,5 +471,65 @@ function createSummary(statement: Statement) {
     f: `SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Position closed", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "Crypto")`,
   };
 
+  const closedPositionsProfitUsdCol =
+    statement.sheets["Closed Positions"].colMap["Profit"] ??
+    statement.sheets["Closed Positions"].colMap["Profit(USD)"];
+  const closedPositionsProfitHufCol =
+    statement.sheets["Closed Positions"].colMap["Profit (HUF)"];
+  const closedPositionsAssetTypeCol =
+    statement.sheets["Closed Positions"].colMap["Type"];
+
+  sheet["A19"] = {
+    t: "s",
+    v: "Profit from closed positions (Total)",
+  };
+  sheet["B19"] = {
+    t: "n",
+    f: `SUM('Closed Positions'!${closedPositionsProfitUsdCol}:${closedPositionsProfitUsdCol})`,
+  };
+  sheet["C19"] = {
+    t: "n",
+    f: `SUM('Closed Positions'!${closedPositionsProfitHufCol}:${closedPositionsProfitHufCol})`,
+  };
+
+  sheet["A20"] = {
+    t: "s",
+    v: "Profit from closed positions (Stocks)",
+  };
+  sheet["B20"] = {
+    t: "n",
+    f: `SUMIFS('Closed Positions'!${closedPositionsProfitUsdCol}:${closedPositionsProfitUsdCol}, 'Closed Positions'!${closedPositionsAssetTypeCol}:${closedPositionsAssetTypeCol}, "Stocks")`,
+  };
+  sheet["C20"] = {
+    t: "n",
+    f: `SUMIFS('Closed Positions'!${closedPositionsProfitHufCol}:${closedPositionsProfitHufCol}, 'Closed Positions'!${closedPositionsAssetTypeCol}:${closedPositionsAssetTypeCol}, "Stocks")`,
+  };
+
+  sheet["A21"] = {
+    t: "s",
+    v: "Profit from closed positions (CFD)",
+  };
+  sheet["B21"] = {
+    t: "n",
+    f: `SUMIFS('Closed Positions'!${closedPositionsProfitUsdCol}:${closedPositionsProfitUsdCol}, 'Closed Positions'!${closedPositionsAssetTypeCol}:${closedPositionsAssetTypeCol}, "CFD")`,
+  };
+  sheet["C21"] = {
+    t: "n",
+    f: `SUMIFS('Closed Positions'!${closedPositionsProfitHufCol}:${closedPositionsProfitHufCol}, 'Closed Positions'!${closedPositionsAssetTypeCol}:${closedPositionsAssetTypeCol}, "CFD")`,
+  };
+
+  sheet["A22"] = {
+    t: "s",
+    v: "Profit from closed positions (Crypto)",
+  };
+  sheet["B22"] = {
+    t: "n",
+    f: `SUMIFS('Closed Positions'!${closedPositionsProfitUsdCol}:${closedPositionsProfitUsdCol}, 'Closed Positions'!${closedPositionsAssetTypeCol}:${closedPositionsAssetTypeCol}, "Crypto")`,
+  };
+  sheet["C22"] = {
+    t: "n",
+    f: `SUMIFS('Closed Positions'!${closedPositionsProfitHufCol}:${closedPositionsProfitHufCol}, 'Closed Positions'!${closedPositionsAssetTypeCol}:${closedPositionsAssetTypeCol}, "Crypto")`,
+  };
+
   XLSX.utils.book_append_sheet(statement.getWorkbook(), sheet, "Summary");
 }
