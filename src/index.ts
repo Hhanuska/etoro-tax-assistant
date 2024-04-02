@@ -288,15 +288,9 @@ function createSummary(statement: Statement) {
     t: "s",
     v: "USD",
   };
-
   sheet["C2"] = {
     t: "s",
     v: "HUF",
-  };
-
-  sheet["A3"] = {
-    t: "s",
-    v: "Deposits",
   };
 
   const activityValueUsdCol =
@@ -304,6 +298,11 @@ function createSummary(statement: Statement) {
   const activityValueHufCol =
     statement.sheets["Account Activity"].colMap["Amount (HUF)"];
   const activityTypeCol = statement.sheets["Account Activity"].colMap["Type"];
+
+  sheet["A3"] = {
+    t: "s",
+    v: "Deposits",
+  };
   sheet["B3"] = {
     t: "n",
     f: `SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Deposit")`,
@@ -311,6 +310,165 @@ function createSummary(statement: Statement) {
   sheet["C3"] = {
     t: "n",
     f: `SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Deposit")`,
+  };
+
+  sheet["A4"] = {
+    t: "s",
+    v: "Withdrawals",
+  };
+  sheet["B4"] = {
+    t: "n",
+    f: `ABS(SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Withdraw Request")+SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Withdraw Request Cancelled"))`,
+  };
+  sheet["C4"] = {
+    t: "n",
+    f: `ABS(SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Withdraw Request")+SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Withdraw Request Cancelled"))`,
+  };
+
+  sheet["A5"] = {
+    t: "s",
+    v: "Withdrawal Fees",
+  };
+  sheet["B5"] = {
+    t: "n",
+    f: `ABS(SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Withdraw Fee")+SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Withdraw Fee Cancelled"))`,
+  };
+  sheet["C5"] = {
+    t: "n",
+    f: `ABS(SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Withdraw Fee")+SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Withdraw Fee Cancelled"))`,
+  };
+
+  sheet["A6"] = {
+    t: "s",
+    v: "Net Deposits",
+  };
+  sheet["B6"] = {
+    t: "n",
+    f: `B3-B4`,
+  };
+  sheet["C6"] = {
+    t: "n",
+    f: `C3-C4`,
+  };
+
+  sheet["A7"] = {
+    t: "s",
+    v: "Total Cost",
+  };
+  sheet["B7"] = {
+    t: "n",
+    f: `B5+B6`,
+  };
+  sheet["C7"] = {
+    t: "n",
+    f: `C5+C6`,
+  };
+
+  const activityAssetTypeCol =
+    statement.sheets["Account Activity"].colMap["Asset type"];
+
+  sheet["A9"] = {
+    t: "s",
+    v: "Open Positions (Total)",
+  };
+  sheet["B9"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Open Position")`,
+  };
+  sheet["C9"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Open Position")`,
+  };
+
+  sheet["A10"] = {
+    t: "s",
+    v: "Open Positions (Stocks)",
+  };
+  sheet["B10"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Open Position", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "Stocks")`,
+  };
+  sheet["C10"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Open Position", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "Stocks")`,
+  };
+
+  sheet["A11"] = {
+    t: "s",
+    v: "Open Positions (CFD)",
+  };
+  sheet["B11"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Open Position", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "CFD")`,
+  };
+  sheet["C11"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Open Position", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "CFD")`,
+  };
+
+  sheet["A12"] = {
+    t: "s",
+    v: "Open Positions (Crypto)",
+  };
+  sheet["B12"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Open Position", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "Crypto")`,
+  };
+  sheet["C12"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Open Position", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "Crypto")`,
+  };
+
+  sheet["A14"] = {
+    t: "s",
+    v: "Closed Positions (Total)",
+  };
+  sheet["B14"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Position closed")`,
+  };
+  sheet["C14"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Position closed")`,
+  };
+
+  sheet["A15"] = {
+    t: "s",
+    v: "Closed Positions (Stocks)",
+  };
+  sheet["B15"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Position closed", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "Stocks")`,
+  };
+  sheet["C15"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Position closed", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "Stocks")`,
+  };
+
+  sheet["A16"] = {
+    t: "s",
+    v: "Closed Positions (CFD)",
+  };
+  sheet["B16"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Position closed", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "CFD")`,
+  };
+  sheet["C16"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Position closed", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "CFD")`,
+  };
+
+  sheet["A17"] = {
+    t: "s",
+    v: "Closed Positions (Crypto)",
+  };
+  sheet["B17"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueUsdCol}:${activityValueUsdCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Position closed", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "Crypto")`,
+  };
+  sheet["C17"] = {
+    t: "n",
+    f: `SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Position closed", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "Crypto")`,
   };
 
   XLSX.utils.book_append_sheet(statement.getWorkbook(), sheet, "Summary");
