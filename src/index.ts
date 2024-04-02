@@ -274,6 +274,82 @@ function addExchangeRatesToClosedPositions(
   return statement;
 }
 
+function addExchangeRatesToDividends(statement: Statement, rates: MNBRate[]) {
+  const dividendSheet = statement.sheets["Dividends"];
+  const dateCol = dividendSheet.colMap["Date of Payment"];
+
+  const exchRateCol = String.fromCharCode(
+    dividendSheet.dimensions.endCol.charCodeAt(0) + 1
+  );
+  const convertedReceivedCol = String.fromCharCode(
+    dividendSheet.dimensions.endCol.charCodeAt(0) + 2
+  );
+  const convertedWithheldCol = String.fromCharCode(
+    dividendSheet.dimensions.endCol.charCodeAt(0) + 3
+  );
+
+  dividendSheet.sheet[
+    "!ref"
+  ] = `${dividendSheet.dimensions.startCol}${dividendSheet.dimensions.startRow}:${convertedWithheldCol}${dividendSheet.dimensions.endRow}`;
+
+  dividendSheet.sheet[`${exchRateCol}${dividendSheet.dimensions.startRow}`] = {
+    t: "s",
+    v: "Exchange Rate",
+  };
+  dividendSheet.sheet[
+    `${convertedReceivedCol}${dividendSheet.dimensions.startRow}`
+  ] = {
+    t: "s",
+    v: "Amount received (HUF)",
+  };
+  dividendSheet.sheet[
+    `${convertedWithheldCol}${dividendSheet.dimensions.startRow}`
+  ] = {
+    t: "s",
+    v: "Amount withheld (HUF)",
+  };
+
+  for (
+    let i = dividendSheet.dimensions.startRow + 1;
+    i <= dividendSheet.dimensions.endRow;
+    i++
+  ) {
+    const dateCell: XLSX.CellObject = dividendSheet.sheet[`${dateCol}${i}`];
+    if (!dateCell || !dateCell.v) {
+      continue;
+    }
+    const date = dateAndTimeToDate(dateCell.v.toString());
+    const rate = MNB.getExchangeRate(date, rates);
+
+    dividendSheet.sheet[`${exchRateCol}${i}`] = {
+      t: "n",
+      v: rate,
+    };
+
+    const amountCol = dividendSheet.colMap["Net Dividend Received (USD)"];
+
+    const convertedAmountCell: XLSX.CellObject = {
+      t: "n",
+      f: `=${amountCol}${i} * ${exchRateCol}${i}`,
+    };
+
+    dividendSheet.sheet[`${convertedReceivedCol}${i}`] = convertedAmountCell;
+
+    const withheldCol = dividendSheet.colMap["Withholding Tax Amount (USD)"];
+
+    const convertedWithheldCell: XLSX.CellObject = {
+      t: "n",
+      f: `=${withheldCol}${i} * ${exchRateCol}${i}`,
+    };
+
+    dividendSheet.sheet[`${convertedWithheldCol}${i}`] = convertedWithheldCell;
+  }
+
+  statement.sheets["Dividends"].refreshColMap();
+
+  return statement;
+}
+
 function createSummary(statement: Statement) {
   const sheet = XLSX.utils.json_to_sheet([]);
 
