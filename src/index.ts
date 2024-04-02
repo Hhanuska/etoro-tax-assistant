@@ -643,5 +643,5 @@ function createSummary(statement: Statement) {
     f: `SUM('Dividends'!${dividendWithheldHufCol}:${dividendWithheldHufCol})`,
   };
 
-  XLSX.utils.book_append_sheet(statement.getWorkbook(), sheet, "Summary");
+  XLSX.utils.book_append_sheet(statement.getWorkbook(), sheet, "Tax Summary");
 }
