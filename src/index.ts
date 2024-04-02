@@ -608,5 +608,40 @@ function createSummary(statement: Statement) {
     f: `SUMIFS('Closed Positions'!${closedPositionsProfitHufCol}:${closedPositionsProfitHufCol}, 'Closed Positions'!${closedPositionsAssetTypeCol}:${closedPositionsAssetTypeCol}, "Crypto")`,
   };
 
+  const dividendReceivedUsdCol =
+    statement.sheets["Dividends"].colMap["Net Dividend Received (USD)"];
+  const dividendReceivedHufCol =
+    statement.sheets["Dividends"].colMap["Amount received (HUF)"];
+  const dividendWithheldUsdCol =
+    statement.sheets["Dividends"].colMap["Withholding Tax Amount (USD)"];
+  const dividendWithheldHufCol =
+    statement.sheets["Dividends"].colMap["Amount withheld (HUF)"];
+
+  sheet["A24"] = {
+    t: "s",
+    v: "Dividends received",
+  };
+  sheet["B24"] = {
+    t: "n",
+    f: `SUM('Dividends'!${dividendReceivedUsdCol}:${dividendReceivedUsdCol})`,
+  };
+  sheet["C24"] = {
+    t: "n",
+    f: `SUM('Dividends'!${dividendReceivedHufCol}:${dividendReceivedHufCol})`,
+  };
+
+  sheet["A25"] = {
+    t: "s",
+    v: "Withholding tax paid on dividends",
+  };
+  sheet["B25"] = {
+    t: "n",
+    f: `SUM('Dividends'!${dividendWithheldUsdCol}:${dividendWithheldUsdCol})`,
+  };
+  sheet["C25"] = {
+    t: "n",
+    f: `SUM('Dividends'!${dividendWithheldHufCol}:${dividendWithheldHufCol})`,
+  };
+
   XLSX.utils.book_append_sheet(statement.getWorkbook(), sheet, "Summary");
 }
