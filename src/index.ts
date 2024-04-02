@@ -25,6 +25,7 @@ async function handleStatement(s: { name: string; wb: WorkBook }) {
 
   addExchangeRatesToActivity(statement, rates);
   addExchangeRatesToClosedPositions(statement, rates);
+  addExchangeRatesToDividends(statement, rates);
   createSummary(statement);
 
   StatementReader.writeOutputFile(
