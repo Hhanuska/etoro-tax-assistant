@@ -1,4 +1,5 @@
 node_modules
 dist
-files/*
+files/output/*
+files/input/*.xlsx
 .DS_Store
