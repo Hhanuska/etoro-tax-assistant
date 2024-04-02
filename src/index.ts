@@ -28,10 +28,7 @@ async function handleStatement(s: { name: string; wb: WorkBook }) {
   addExchangeRatesToDividends(statement, rates);
   createSummary(statement);
 
-  StatementReader.writeOutputFile(
-    statement.getWorkbook(),
-    `./files/output/${s.name}_output.xlsx`
-  );
+  StatementReader.writeOutputFile(statement.getWorkbook(), `${s.name}_output`);
 }
 
 function getDates(statement: Statement) {
