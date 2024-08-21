@@ -1,9 +1,9 @@
 import XLSX, { WorkBook } from "xlsx";
 
 export class Sheet {
-  public dimensions: Dimensions;
+  public dimensions: XLSX.Range;
 
-  public colMap: { [col: string]: string } = {};
+  public colMap: { [col: string]: number } = {};
 
   constructor(public sheet: XLSX.WorkSheet) {
     this.dimensions = this.getDimensions();
@@ -16,40 +16,16 @@ export class Sheet {
     if (!dim) {
       throw new Error("No dimensions found in the statement");
     }
-
-    const [start, end] = dim.split(":");
-
-    if (!start || !end) {
-      throw new Error("Invalid dimensions found in the statement");
-    }
-
-    const startCol = start.match(/[A-Z]+/)?.[0];
-    const startRow = start.match(/\d+/)?.[0];
-    const endCol = end.match(/[A-Z]+/)?.[0];
-    const endRow = end.match(/\d+/)?.[0];
-
-    if (!startCol || !startRow || !endCol || !endRow) {
-      throw new Error("Invalid dimensions found in the statement");
-    }
-
-    return {
-      startCol,
-      startRow: parseInt(startRow),
-      endCol,
-      endRow: parseInt(endRow),
-    };
+    const range = XLSX.utils.decode_range(dim);
+    return range;
   }
 
   public getColMap() {
-    const colMap: { [col: string]: string } = {};
+    const colMap: { [col: string]: number } = {};
 
-    for (
-      let i = this.dimensions.startCol.charCodeAt(0);
-      i <= this.dimensions.endCol.charCodeAt(0);
-      i++
-    ) {
-      const col = String.fromCharCode(i);
-      const cell = this.sheet[`${col}${this.dimensions.startRow}`];
+    for (let col = this.dimensions.s.c; col <= this.dimensions.e.c; col++) {
+      const cell =
+        this.sheet[XLSX.utils.encode_cell({ c: col, r: this.dimensions.s.r })];
       if (!cell || !cell.v) {
         continue;
       }

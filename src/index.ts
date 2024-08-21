@@ -3,13 +3,15 @@ import { StatementReader } from "./app/statementReader";
 import { MNB, MNBRate } from "./currency/mnb";
 import { Statement } from "./app/statement";
 
-const statements = StatementReader.getInputFilePaths().map((path) => {
-  const fileName = path.split("/")[path.split("/").length - 1];
-  return {
-    name: fileName.substring(0, fileName.indexOf(".xlsx")),
-    wb: StatementReader.readInputFile(path),
-  };
-});
+const statements = StatementReader.getInputFilePaths()
+  .map((path) => {
+    const fileName = path.split("/")[path.split("/").length - 1];
+    return {
+      name: fileName.substring(0, fileName.indexOf(".xlsx")),
+      wb: StatementReader.readInputFile(path),
+    };
+  })
+  .filter((s) => s.name.startsWith("test"));
 
 statements.forEach(handleStatement);
 
@@ -39,11 +41,13 @@ function getDates(statement: Statement) {
   const col = closedPositionsSheet.colMap["Open Date"];
 
   for (
-    let i = closedPositionsSheet.dimensions.startRow + 1;
-    i <= closedPositionsSheet.dimensions.endRow;
+    let i = closedPositionsSheet.dimensions.s.r + 1;
+    i <= closedPositionsSheet.dimensions.e.r;
     i++
   ) {
-    const cell: XLSX.CellObject = closedPositionsSheet.sheet[`${col}${i}`];
+    const cell: XLSX.CellObject =
+      closedPositionsSheet.sheet[XLSX.utils.encode_cell({ c: col, r: i })];
+
     if (!cell || !cell.v) {
       continue;
     }
@@ -56,11 +60,12 @@ function getDates(statement: Statement) {
   const dateCol = activitySheet.colMap["Date"];
 
   for (
-    let i = activitySheet.dimensions.startRow + 1;
-    i <= activitySheet.dimensions.endRow;
+    let i = activitySheet.dimensions.s.r + 1;
+    i <= activitySheet.dimensions.e.r;
     i++
   ) {
-    const cell: XLSX.CellObject = activitySheet.sheet[`${dateCol}${i}`];
+    const cell: XLSX.CellObject =
+      activitySheet.sheet[XLSX.utils.encode_cell({ c: dateCol, r: i })];
     if (!cell || !cell.v) {
       continue;
     }
@@ -82,43 +87,55 @@ function reformatDate(date: string) {
 
 function addExchangeRatesToActivity(statement: Statement, rates: MNBRate[]) {
   const activitySheet = statement.sheets["Account Activity"];
+  const ref = XLSX.utils.decode_range(activitySheet.sheet["!ref"]!);
+  if (!ref) {
+    throw new Error("No dimensions found in the statement");
+  }
   const dateCol = activitySheet.colMap["Date"];
 
-  const exchRateCol = String.fromCharCode(
-    activitySheet.dimensions.endCol.charCodeAt(0) + 1
-  );
+  const exchRateCol = activitySheet.dimensions.e.c + 1;
 
-  const convertedCol = String.fromCharCode(
-    activitySheet.dimensions.endCol.charCodeAt(0) + 2
-  );
+  const convertedCol = activitySheet.dimensions.e.c + 2;
+
+  ref.e.c += 2;
+
+  activitySheet.sheet["!ref"] = XLSX.utils.encode_range(ref);
 
   activitySheet.sheet[
-    "!ref"
-  ] = `${activitySheet.dimensions.startCol}${activitySheet.dimensions.startRow}:${convertedCol}${activitySheet.dimensions.endRow}`;
-
-  activitySheet.sheet[`${exchRateCol}${activitySheet.dimensions.startRow}`] = {
+    XLSX.utils.encode_cell({
+      c: exchRateCol,
+      r: activitySheet.dimensions.s.r,
+    })
+  ] = {
     t: "s",
     v: "Exchange Rate",
   };
 
-  activitySheet.sheet[`${convertedCol}${activitySheet.dimensions.startRow}`] = {
+  activitySheet.sheet[
+    XLSX.utils.encode_cell({
+      c: convertedCol,
+      r: activitySheet.dimensions.s.r,
+    })
+  ] = {
     t: "s",
     v: "Amount (HUF)",
   };
 
   for (
-    let i = activitySheet.dimensions.startRow + 1;
-    i <= activitySheet.dimensions.endRow;
+    let i = activitySheet.dimensions.s.r + 1;
+    i <= activitySheet.dimensions.e.r;
     i++
   ) {
-    const dateCell: XLSX.CellObject = activitySheet.sheet[`${dateCol}${i}`];
+    const dateCell: XLSX.CellObject =
+      activitySheet.sheet[XLSX.utils.encode_cell({ c: dateCol, r: i })];
     if (!dateCell || !dateCell.v) {
       continue;
     }
     const date = dateAndTimeToDate(dateCell.v.toString());
     const rate = MNB.getExchangeRate(date, rates);
 
-    activitySheet.sheet[`${exchRateCol}${i}`] = {
+    const exchangeRateCellA1 = XLSX.utils.encode_cell({ c: exchRateCol, r: i });
+    activitySheet.sheet[exchangeRateCellA1] = {
       t: "n",
       v: rate,
     };
@@ -127,10 +144,14 @@ function addExchangeRatesToActivity(statement: Statement, rates: MNBRate[]) {
 
     const convertedAmountCell: XLSX.CellObject = {
       t: "n",
-      f: `=${amountCol}${i} * ${exchRateCol}${i}`,
+      f: `=${XLSX.utils.encode_cell({
+        c: amountCol,
+        r: i,
+      })} * ${exchangeRateCellA1}`,
     };
 
-    activitySheet.sheet[`${convertedCol}${i}`] = convertedAmountCell;
+    activitySheet.sheet[XLSX.utils.encode_cell({ c: convertedCol, r: i })] =
+      convertedAmountCell;
   }
 
   statement.sheets["Account Activity"].refreshColMap();
@@ -143,82 +164,98 @@ function addExchangeRatesToClosedPositions(
   rates: MNBRate[]
 ) {
   const closedPositionsSheet = statement.sheets["Closed Positions"];
+  const ref = XLSX.utils.decode_range(closedPositionsSheet.sheet["!ref"]!);
+  if (!ref) {
+    throw new Error("No dimensions found in the statement");
+  }
+
   const openDateCol = closedPositionsSheet.colMap["Open Date"];
   const closeDateCol = closedPositionsSheet.colMap["Close Date"];
 
-  const exchRateOpenCol = String.fromCharCode(
-    closedPositionsSheet.dimensions.endCol.charCodeAt(0) + 1
-  );
+  const exchRateOpenCol = closedPositionsSheet.dimensions.e.c + 1;
 
-  const convertedOpenCol = String.fromCharCode(
-    closedPositionsSheet.dimensions.endCol.charCodeAt(0) + 2
-  );
+  const convertedOpenCol = closedPositionsSheet.dimensions.e.c + 2;
 
-  const exchRateCloseCol = String.fromCharCode(
-    closedPositionsSheet.dimensions.endCol.charCodeAt(0) + 3
-  );
+  const exchRateCloseCol = closedPositionsSheet.dimensions.e.c + 3;
 
-  const convertedCloseCol = String.fromCharCode(
-    closedPositionsSheet.dimensions.endCol.charCodeAt(0) + 4
-  );
+  const convertedCloseCol = closedPositionsSheet.dimensions.e.c + 4;
 
-  const convertedProfitCol = String.fromCharCode(
-    closedPositionsSheet.dimensions.endCol.charCodeAt(0) + 5
-  );
+  const convertedProfitCol = closedPositionsSheet.dimensions.e.c + 5;
+
+  ref.e.c += 5;
+
+  closedPositionsSheet.sheet["!ref"] = XLSX.utils.encode_range(ref);
 
   closedPositionsSheet.sheet[
-    "!ref"
-  ] = `${closedPositionsSheet.dimensions.startCol}${closedPositionsSheet.dimensions.startRow}:${convertedProfitCol}${closedPositionsSheet.dimensions.endRow}`;
-
-  closedPositionsSheet.sheet[
-    `${exchRateOpenCol}${closedPositionsSheet.dimensions.startRow}`
+    XLSX.utils.encode_cell({
+      c: exchRateOpenCol,
+      r: closedPositionsSheet.dimensions.s.r,
+    })
   ] = {
     t: "s",
     v: "Exchange Rate at open date",
   };
 
   closedPositionsSheet.sheet[
-    `${exchRateCloseCol}${closedPositionsSheet.dimensions.startRow}`
+    XLSX.utils.encode_cell({
+      c: exchRateCloseCol,
+      r: closedPositionsSheet.dimensions.s.r,
+    })
   ] = {
     t: "s",
     v: "Exchange Rate at close date",
   };
 
   closedPositionsSheet.sheet[
-    `${convertedOpenCol}${closedPositionsSheet.dimensions.startRow}`
+    XLSX.utils.encode_cell({
+      c: convertedOpenCol,
+      r: closedPositionsSheet.dimensions.s.r,
+    })
   ] = {
     t: "s",
     v: "Amount at open (HUF)",
   };
 
   closedPositionsSheet.sheet[
-    `${convertedCloseCol}${closedPositionsSheet.dimensions.startRow}`
+    XLSX.utils.encode_cell({
+      c: convertedCloseCol,
+      r: closedPositionsSheet.dimensions.s.r,
+    })
   ] = {
     t: "s",
     v: "Amount at close (HUF)",
   };
 
   closedPositionsSheet.sheet[
-    `${convertedProfitCol}${closedPositionsSheet.dimensions.startRow}`
+    XLSX.utils.encode_cell({
+      c: convertedProfitCol,
+      r: closedPositionsSheet.dimensions.s.r,
+    })
   ] = {
     t: "s",
     v: "Profit (HUF)",
   };
 
   for (
-    let i = closedPositionsSheet.dimensions.startRow + 1;
-    i <= closedPositionsSheet.dimensions.endRow;
+    let i = closedPositionsSheet.dimensions.s.r + 1;
+    i <= closedPositionsSheet.dimensions.e.r;
     i++
   ) {
     const openDateCell: XLSX.CellObject =
-      closedPositionsSheet.sheet[`${openDateCol}${i}`];
+      closedPositionsSheet.sheet[
+        XLSX.utils.encode_cell({ c: openDateCol, r: i })
+      ];
     if (!openDateCell || !openDateCell.v) {
       continue;
     }
     const openDate = dateAndTimeToDate(openDateCell.v.toString());
     const openRate = MNB.getExchangeRate(openDate, rates);
 
-    closedPositionsSheet.sheet[`${exchRateOpenCol}${i}`] = {
+    const exchangeRateOpenCellA1 = XLSX.utils.encode_cell({
+      c: exchRateOpenCol,
+      r: i,
+    });
+    closedPositionsSheet.sheet[exchangeRateOpenCellA1] = {
       t: "n",
       v: openRate,
     };
@@ -227,21 +264,32 @@ function addExchangeRatesToClosedPositions(
 
     const convertedOpenAmountCell: XLSX.CellObject = {
       t: "n",
-      f: `=${amountCol}${i} * ${exchRateOpenCol}${i}`,
+      f: `=${XLSX.utils.encode_cell({
+        c: amountCol,
+        r: i,
+      })} * ${exchangeRateOpenCellA1}`,
     };
 
-    closedPositionsSheet.sheet[`${convertedOpenCol}${i}`] =
-      convertedOpenAmountCell;
+    closedPositionsSheet.sheet[
+      XLSX.utils.encode_cell({ c: convertedOpenCol, r: i })
+    ] = convertedOpenAmountCell;
 
     const closeDateCell: XLSX.CellObject =
-      closedPositionsSheet.sheet[`${closeDateCol}${i}`];
+      closedPositionsSheet.sheet[
+        XLSX.utils.encode_cell({ c: closeDateCol, r: i })
+      ];
     if (!closeDateCell || !closeDateCell.v) {
       continue;
     }
     const closeDate = dateAndTimeToDate(closeDateCell.v.toString());
     const closeRate = MNB.getExchangeRate(closeDate, rates);
 
-    closedPositionsSheet.sheet[`${exchRateCloseCol}${i}`] = {
+    closedPositionsSheet.sheet[
+      XLSX.utils.encode_cell({
+        c: exchRateCloseCol,
+        r: i,
+      })
+    ] = {
       t: "n",
       v: closeRate,
     };
@@ -252,19 +300,36 @@ function addExchangeRatesToClosedPositions(
 
     const convertedCloseAmountCell: XLSX.CellObject = {
       t: "n",
-      f: `=(${amountCol}${i} - ${profitCol}${i}) * ${exchRateCloseCol}${i}`,
+      f: `=(${XLSX.utils.encode_cell({
+        c: amountCol,
+        r: i,
+      })} - ${XLSX.utils.encode_cell({
+        c: profitCol,
+        r: i,
+      })}) * ${XLSX.utils.encode_cell({
+        c: exchRateCloseCol,
+        r: i,
+      })}`,
     };
 
-    closedPositionsSheet.sheet[`${convertedCloseCol}${i}`] =
-      convertedCloseAmountCell;
+    closedPositionsSheet.sheet[
+      XLSX.utils.encode_cell({ c: convertedCloseCol, r: i })
+    ] = convertedCloseAmountCell;
 
     const convertedProfitCell: XLSX.CellObject = {
       t: "n",
-      f: `=${convertedOpenCol}${i} - ${convertedCloseCol}${i}`,
+      f: `=${XLSX.utils.encode_cell({
+        c: convertedOpenCol,
+        r: i,
+      })} - ${XLSX.utils.encode_cell({
+        c: convertedCloseCol,
+        r: i,
+      })}`,
     };
 
-    closedPositionsSheet.sheet[`${convertedProfitCol}${i}`] =
-      convertedProfitCell;
+    closedPositionsSheet.sheet[
+      XLSX.utils.encode_cell({ c: convertedProfitCol, r: i })
+    ] = convertedProfitCell;
   }
 
   statement.sheets["Closed Positions"].refreshColMap();
@@ -274,73 +339,99 @@ function addExchangeRatesToClosedPositions(
 
 function addExchangeRatesToDividends(statement: Statement, rates: MNBRate[]) {
   const dividendSheet = statement.sheets["Dividends"];
+  const ref = XLSX.utils.decode_range(dividendSheet.sheet["!ref"]!);
+  if (!ref) {
+    throw new Error("No dimensions found in the statement");
+  }
+
   const dateCol = dividendSheet.colMap["Date of Payment"];
 
-  const exchRateCol = String.fromCharCode(
-    dividendSheet.dimensions.endCol.charCodeAt(0) + 1
-  );
-  const convertedReceivedCol = String.fromCharCode(
-    dividendSheet.dimensions.endCol.charCodeAt(0) + 2
-  );
-  const convertedWithheldCol = String.fromCharCode(
-    dividendSheet.dimensions.endCol.charCodeAt(0) + 3
-  );
+  const exchRateCol = dividendSheet.dimensions.e.c + 1;
+
+  const convertedReceivedCol = dividendSheet.dimensions.e.c + 2;
+
+  const convertedWithheldCol = dividendSheet.dimensions.e.c + 3;
+
+  ref.e.c += 3;
+
+  dividendSheet.sheet["!ref"] = XLSX.utils.encode_range(ref);
 
   dividendSheet.sheet[
-    "!ref"
-  ] = `${dividendSheet.dimensions.startCol}${dividendSheet.dimensions.startRow}:${convertedWithheldCol}${dividendSheet.dimensions.endRow}`;
-
-  dividendSheet.sheet[`${exchRateCol}${dividendSheet.dimensions.startRow}`] = {
+    XLSX.utils.encode_cell({ c: exchRateCol, r: dividendSheet.dimensions.s.r })
+  ] = {
     t: "s",
     v: "Exchange Rate",
   };
   dividendSheet.sheet[
-    `${convertedReceivedCol}${dividendSheet.dimensions.startRow}`
+    XLSX.utils.encode_cell({
+      c: convertedReceivedCol,
+      r: dividendSheet.dimensions.s.r,
+    })
   ] = {
     t: "s",
     v: "Amount received (HUF)",
   };
   dividendSheet.sheet[
-    `${convertedWithheldCol}${dividendSheet.dimensions.startRow}`
+    XLSX.utils.encode_cell({
+      c: convertedWithheldCol,
+      r: dividendSheet.dimensions.s.r,
+    })
   ] = {
     t: "s",
     v: "Amount withheld (HUF)",
   };
 
   for (
-    let i = dividendSheet.dimensions.startRow + 1;
-    i <= dividendSheet.dimensions.endRow;
+    let i = dividendSheet.dimensions.s.r + 1;
+    i <= dividendSheet.dimensions.e.r;
     i++
   ) {
-    const dateCell: XLSX.CellObject = dividendSheet.sheet[`${dateCol}${i}`];
+    const dateCell: XLSX.CellObject =
+      dividendSheet.sheet[XLSX.utils.encode_cell({ c: dateCol, r: i })];
     if (!dateCell || !dateCell.v) {
       continue;
     }
     const date = dateAndTimeToDate(dateCell.v.toString());
     const rate = MNB.getExchangeRate(date, rates);
 
-    dividendSheet.sheet[`${exchRateCol}${i}`] = {
+    const exchangeRateCellA1 = XLSX.utils.encode_cell({
+      c: exchRateCol,
+      r: i,
+    });
+    dividendSheet.sheet[exchangeRateCellA1] = {
       t: "n",
       v: rate,
     };
 
     const amountCol = dividendSheet.colMap["Net Dividend Received (USD)"];
+    const amountCellA1 = XLSX.utils.encode_cell({
+      c: amountCol,
+      r: i,
+    });
 
     const convertedAmountCell: XLSX.CellObject = {
       t: "n",
-      f: `=${amountCol}${i} * ${exchRateCol}${i}`,
+      f: `=${amountCellA1} * ${exchangeRateCellA1}`,
     };
 
-    dividendSheet.sheet[`${convertedReceivedCol}${i}`] = convertedAmountCell;
+    dividendSheet.sheet[
+      XLSX.utils.encode_cell({ c: convertedReceivedCol, r: i })
+    ] = convertedAmountCell;
 
     const withheldCol = dividendSheet.colMap["Withholding Tax Amount (USD)"];
+    const withheldCellA1 = XLSX.utils.encode_cell({
+      c: withheldCol,
+      r: i,
+    });
 
     const convertedWithheldCell: XLSX.CellObject = {
       t: "n",
-      f: `=${withheldCol}${i} * ${exchRateCol}${i}`,
+      f: `=${withheldCellA1} * ${exchangeRateCellA1}`,
     };
 
-    dividendSheet.sheet[`${convertedWithheldCol}${i}`] = convertedWithheldCell;
+    dividendSheet.sheet[
+      XLSX.utils.encode_cell({ c: convertedWithheldCol, r: i })
+    ] = convertedWithheldCell;
   }
 
   statement.sheets["Dividends"].refreshColMap();
@@ -367,11 +458,15 @@ function createSummary(statement: Statement) {
     v: "HUF",
   };
 
-  const activityValueUsdCol =
-    statement.sheets["Account Activity"].colMap["Amount"];
-  const activityValueHufCol =
-    statement.sheets["Account Activity"].colMap["Amount (HUF)"];
-  const activityTypeCol = statement.sheets["Account Activity"].colMap["Type"];
+  const activityValueUsdCol = XLSX.utils.encode_col(
+    statement.sheets["Account Activity"].colMap["Amount"]
+  );
+  const activityValueHufCol = XLSX.utils.encode_col(
+    statement.sheets["Account Activity"].colMap["Amount (HUF)"]
+  );
+  const activityTypeCol = XLSX.utils.encode_col(
+    statement.sheets["Account Activity"].colMap["Type"]
+  );
 
   sheet["A3"] = {
     t: "s",
@@ -438,8 +533,9 @@ function createSummary(statement: Statement) {
     f: `C5+C6`,
   };
 
-  const activityAssetTypeCol =
-    statement.sheets["Account Activity"].colMap["Asset type"];
+  const activityAssetTypeCol = XLSX.utils.encode_col(
+    statement.sheets["Account Activity"].colMap["Asset type"]
+  );
 
   sheet["A9"] = {
     t: "s",
@@ -545,13 +641,18 @@ function createSummary(statement: Statement) {
     f: `SUMIFS('Account Activity'!${activityValueHufCol}:${activityValueHufCol}, 'Account Activity'!${activityTypeCol}:${activityTypeCol}, "Position closed", 'Account Activity'!${activityAssetTypeCol}:${activityAssetTypeCol}, "Crypto")`,
   };
 
-  const closedPositionsProfitUsdCol =
+  const _closedPositionsProfitUsdCol =
     statement.sheets["Closed Positions"].colMap["Profit"] ??
     statement.sheets["Closed Positions"].colMap["Profit(USD)"];
-  const closedPositionsProfitHufCol =
-    statement.sheets["Closed Positions"].colMap["Profit (HUF)"];
-  const closedPositionsAssetTypeCol =
-    statement.sheets["Closed Positions"].colMap["Type"];
+  const closedPositionsProfitUsdCol = XLSX.utils.encode_col(
+    _closedPositionsProfitUsdCol
+  );
+  const closedPositionsProfitHufCol = XLSX.utils.encode_col(
+    statement.sheets["Closed Positions"].colMap["Profit (HUF)"]
+  );
+  const closedPositionsAssetTypeCol = XLSX.utils.encode_col(
+    statement.sheets["Closed Positions"].colMap["Type"]
+  );
 
   sheet["A19"] = {
     t: "s",
@@ -605,14 +706,18 @@ function createSummary(statement: Statement) {
     f: `SUMIFS('Closed Positions'!${closedPositionsProfitHufCol}:${closedPositionsProfitHufCol}, 'Closed Positions'!${closedPositionsAssetTypeCol}:${closedPositionsAssetTypeCol}, "Crypto")`,
   };
 
-  const dividendReceivedUsdCol =
-    statement.sheets["Dividends"].colMap["Net Dividend Received (USD)"];
-  const dividendReceivedHufCol =
-    statement.sheets["Dividends"].colMap["Amount received (HUF)"];
-  const dividendWithheldUsdCol =
-    statement.sheets["Dividends"].colMap["Withholding Tax Amount (USD)"];
-  const dividendWithheldHufCol =
-    statement.sheets["Dividends"].colMap["Amount withheld (HUF)"];
+  const dividendReceivedUsdCol = XLSX.utils.encode_col(
+    statement.sheets["Dividends"].colMap["Net Dividend Received (USD)"]
+  );
+  const dividendReceivedHufCol = XLSX.utils.encode_col(
+    statement.sheets["Dividends"].colMap["Amount received (HUF)"]
+  );
+  const dividendWithheldUsdCol = XLSX.utils.encode_col(
+    statement.sheets["Dividends"].colMap["Withholding Tax Amount (USD)"]
+  );
+  const dividendWithheldHufCol = XLSX.utils.encode_col(
+    statement.sheets["Dividends"].colMap["Amount withheld (HUF)"]
+  );
 
   sheet["A24"] = {
     t: "s",
