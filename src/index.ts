@@ -11,7 +11,6 @@ const statements = StatementReader.getInputFilePaths()
       wb: StatementReader.readInputFile(path),
     };
   })
-  .filter((s) => s.name.startsWith("test"));
 
 statements.forEach(handleStatement);
 
